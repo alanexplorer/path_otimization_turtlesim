@@ -24,6 +24,8 @@ class TurtleSimManager(Node):
         self.controller = Controller(k, k_alpha, k_beta)
         self.arrived = False
         self.compute_dist = False
+        self.collided = False
+
         self.distance = None
         self.initial_pose = Pose()
         self.current_path = []
@@ -42,25 +44,33 @@ class TurtleSimManager(Node):
 
     def listener_callback(self, msg):
 
-        if(not self.arrived):
-            
-            self.current_path.append([msg.x, msg.y])
+        if(not self.is_collision(msg)):
 
-            self.arrived = self.controller.approach(msg, self.target)
+            if(not self.arrived):
+                
+                self.current_path.append([msg.x, msg.y])
 
-            command = self.controller.get_velocity_command()
-            self.cmd_msg.linear.x = float(command[0])
-            self.cmd_msg.angular.z = float(command[1])
+                self.arrived = self.controller.approach(msg, self.target)
 
-            self.publisher.publish(self.cmd_msg)
+                command = self.controller.get_velocity_command()
+                self.cmd_msg.linear.x = float(command[0])
+                self.cmd_msg.angular.z = float(command[1])
 
-        elif(not self.compute_dist):
+                self.publisher.publish(self.cmd_msg)
 
-            x = np.array([[self.initial_pose.x, self.initial_pose.x], [self.target.x, self.target.y]])
-            y = np.array(self.current_path)
+            elif(not self.compute_dist):
 
-            self.distance, path = fastdtw(x, y, dist=euclidean)
-            self.compute_dist = True
+                x = np.array([[self.initial_pose.x, self.initial_pose.x], [self.target.x, self.target.y]])
+                y = np.array(self.current_path)
+
+                self.distance, path = fastdtw(x, y, dist=euclidean)
+                self.compute_dist = True
+
+        else:
+            self.collided = True
+
+    def is_collision(self, pose):
+            return pose.x < 0 or pose.x > 11.0 or pose.y < 0 or pose.y > 11.0
 
     def pen_request(self):
 

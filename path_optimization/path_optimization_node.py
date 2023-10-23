@@ -33,15 +33,20 @@ def fitness(params):
     robot.pen_request()
 
     distance_computed = False
-    timeout_seconds = 10  # sec
+    timeout_seconds = 15  # sec
     start_time = time.time() 
-    is_timeout = False
+    stop_early = False
 
     while rclpy.ok():
 
-        distance_computed = robot.compute_dist
-
         rclpy.spin_once(robot)
+
+        if robot.collided:
+            print(f"robot_{name.lower()} :This individual collided")
+            stop_early = True
+            break
+
+        distance_computed = robot.compute_dist
 
         if robot.arrived and distance_computed:
             break
@@ -51,14 +56,14 @@ def fitness(params):
         
         if elapsed_time >= timeout_seconds:
             print(f"Timeout robot_{name.lower()}: Conditions not met within the time limit.")
-            is_timeout = True
+            stop_early = True
             break
 
     # Execute the mission and get the distance traveled
-    if not is_timeout:
+    if not stop_early:
         distance_traveled = robot.distance
     else:
-        distance_traveled = 1.0e1000
+        distance_traveled = 1.0e10000
 
     robot.destroy_node()
     # Minimize the distance traveled
@@ -75,10 +80,16 @@ def custom_mutation(individual):
     return individual
 
 def custom_crossover(parent1, parent2):
-    child = tools.cxBlend(parent1, parent2, alpha=0.5)
-    for i in range(len(child)):
-        child[i] = max(min(child[i], param_limits[i][1]), param_limits[i][0])
-    return creator.Individual(child)
+    child1 = tools.cxBlend(parent1, parent2, alpha=0.5)
+    child2 = tools.cxBlend(parent2, parent1, alpha=0.5)
+    
+    # Garanta que os filhos estão dentro dos limites
+    for i in range(len(child1)):
+        child1[i] = max(param_limits[i][0], min(child1[i], param_limits[i][1]))
+        child2[i] = max(param_limits[i][0], min(child2[i], param_limits[i][1]))
+    
+    return creator.Individual(child1), creator.Individual(child2)
+
 
 def main(args=None):
 
@@ -116,16 +127,21 @@ def main(args=None):
     stats.register("max", np.max)    # Maior aptidão
 
     # Run the genetic algorithm (NSGA-II in this example)
-    algorithms.eaMuPlusLambda(population, toolbox, mu=5, lambda_=20, cxpb=0.7, mutpb=0.3, ngen=10, stats=None, halloffame=None)
+    algorithms.eaMuPlusLambda(population, toolbox, mu=5, lambda_=20, cxpb=0.7, mutpb=0.3, ngen=10, stats=stats, halloffame=None)
+
 
     gen = range(0, len(stats.get("avg")))
     avg = stats.get("avg")
     min = stats.get("min")
     max = stats.get("max")
 
-    # Get the best individual after optimization
-    best_individual = tools.selBest(population, 1)[0]
-    best_parameters = best_individual
+    best_individual = population[0]  # Suponha que o primeiro indivíduo é o melhor inicialmente
+
+    for ind in population:
+        if ind.fitness.values < best_individual.fitness.values:
+            best_individual = ind
+
+    best_parameters = best_individual  # Este é o melhor indivíduo encontrado
 
     print("Best parameters found:", best_parameters)
     print("average:", avg)
