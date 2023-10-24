@@ -19,7 +19,7 @@ def main(args=None):
     k_alpha = 0.7221392258534132
 
     robot = TurtleSimManager("robot_test", k, k_alpha, k_beta)
-    robot.spawn(1.0, 5.0, 0.0)
+    robot.spawn(1.0, 1.0, 0.0)
     robot.add_subscription()
     robot.pen_request()
 

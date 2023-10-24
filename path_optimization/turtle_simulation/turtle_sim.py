@@ -30,10 +30,33 @@ class TurtleSimManager(Node):
         self.initial_pose = Pose()
         self.current_path = []
 
+        self.target_list = []
+        self.target_size = len(self.target_list)
+
         self.target = Pose()
         self.target.x = 9.0
         self.target.y = 1.0
         self.target.theta = 90.0*pi/180
+        self.target_list.append(self.target)
+
+        self.target = Pose()
+        self.target.x = 9.0
+        self.target.y = 10.0
+        self.target.theta = 180.0*pi/180
+        self.target_list.append(self.target)
+
+        self.target = Pose()
+        self.target.x = 1.0
+        self.target.y = 9.0
+        self.target.theta = -90.0*pi/180
+        self.target_list.append(self.target)
+
+        self.target = Pose()
+        self.target.x = 1.0
+        self.target.y = 1.0
+        self.target.theta = 0.0*pi/180
+        self.target_list.append(self.target)
+
 
     def add_subscription(self):
 
@@ -46,11 +69,14 @@ class TurtleSimManager(Node):
 
         if(not self.is_collision(msg)):
 
-            if(not self.arrived):
+            if(not self.target_list):
+                self.arrived = True
+
+            if(self.target_list and not self.arrived):
                 
                 self.current_path.append([msg.x, msg.y])
 
-                self.arrived = self.controller.approach(msg, self.target)
+                passed = self.controller.approach(msg, self.target_list[0])
 
                 command = self.controller.get_velocity_command()
                 self.cmd_msg.linear.x = float(command[0])
@@ -58,19 +84,16 @@ class TurtleSimManager(Node):
 
                 self.publisher.publish(self.cmd_msg)
 
-            elif(not self.compute_dist):
+                if passed:
+                    self.target_list.pop(0)
 
-                x = np.array([[self.initial_pose.x, self.initial_pose.x], [self.target.x, self.target.y]])
-                y = np.array(self.current_path)
-
-                self.distance, path = fastdtw(x, y, dist=euclidean)
-                self.compute_dist = True
-
+            else:
+                self.get_logger().info(f' {self.name} arrived. ')
         else:
             self.collided = True
 
     def is_collision(self, pose):
-            return pose.x < 0 or pose.x > 11.0 or pose.y < 0 or pose.y > 11.0
+            return pose.x <= 0 or pose.x >= 11.0 or pose.y <= 0 or pose.y >= 11.0
 
     def pen_request(self):
 

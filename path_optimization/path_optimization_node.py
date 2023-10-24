@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 # Define the limits for the parameters
-param_limits = [(0.1, 1.0), (0.1, 1.0), (0.1, 1.0)]
+param_limits = [(0.1, 2.0), (0.1, 2.0), (0.1, 2.0)]
 
 # Crie um conjunto para armazenar nomes gerados anteriormente
 generated_names = set()
@@ -24,16 +24,16 @@ def generate_unique_random_name(name_length=8):
 # Define the fitness function
 def fitness(params):
     k, k_alpha, k_beta = params
+
+    print(f"k: {k}, k_alpha: {k_alpha}, k_beta: {k_beta}")
     # Create a robot with the parameters
     name = generate_unique_random_name(8)
     robot = TurtleSimManager(f"robot_{name.lower()}", k, k_alpha, k_beta)
 
-    robot.spawn(1.0, 5.0, 0.0)
+    robot.spawn(1.0, 1.0, 0.0)
     robot.add_subscription()
     robot.pen_request()
 
-    distance_computed = False
-    timeout_seconds = 15  # sec
     start_time = time.time() 
     stop_early = False
     elapsed_time = None
@@ -47,23 +47,17 @@ def fitness(params):
             stop_early = True
             break
 
-        distance_computed = robot.compute_dist
-
-        if robot.arrived and distance_computed:
+        if robot.arrived:
             break
 
-        current_time = time.time()
-        elapsed_time = current_time - start_time
-        
-        if elapsed_time >= timeout_seconds:
-            print(f"Timeout robot_{name.lower()}: Conditions not met within the time limit.")
-            stop_early = True
-            break
+    current_time = time.time()
+    elapsed_time = current_time - start_time
 
     # Execute the mission and get the distance traveled
     if not stop_early:
-        distance_traveled = robot.distance / elapsed_time
-        print(f"robot_{name.lower()} : {distance_traveled} m/s")
+        # distance_traveled = robot.distance / elapsed_time
+        distance_traveled = elapsed_time
+        print(f"robot_{name.lower()} : {distance_traveled} s")
     else:
         distance_traveled = 1.0e10000
 
@@ -95,11 +89,11 @@ def main(args=None):
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", fitness)
     toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", tools.mutGaussian, mu=0.55, sigma=0.2, indpb=0.2)
+    toolbox.register("mutate", tools.mutGaussian, mu=0.0, sigma=0.2, indpb=0.2)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # Create an initial population
-    population = toolbox.population(n=20)
+    population = toolbox.population(n=30)
 
     # Crie um objeto Statistics
     stats = tools.Statistics(key=lambda ind: ind.fitness.values)
@@ -118,7 +112,7 @@ def main(args=None):
         print(f"Evaluating the generation {gen}/{ngen}")
         
         # Run the genetic algorithm (NSGA-II in this example)
-        algorithms.eaMuPlusLambda(population, toolbox, mu=5, lambda_=10, cxpb=0.7, mutpb=0.3, ngen=1, stats=stats, halloffame=None, verbose=True)
+        algorithms.eaMuPlusLambda(population, toolbox, mu=10, lambda_=15, cxpb=0.7, mutpb=0.2, ngen=1, stats=stats, halloffame=None, verbose=True)
 
         screen.reset()
         screen.kill()
