@@ -32,7 +32,7 @@ class TurtleSimManager(Node):
 
         self.target = Pose()
         self.target.x = 9.0
-        self.target.y = 7.0
+        self.target.y = 1.0
         self.target.theta = 90.0*pi/180
 
     def add_subscription(self):

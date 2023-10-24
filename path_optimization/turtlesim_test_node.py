@@ -14,15 +14,9 @@ import time
 def main(args=None):
     rclpy.init(args=args)
 
-        # self.controller = Controller(1.0, 1.05, 0.5)
-
-    k = 1.0
-    k_alpha = 1.05
-    k_beta = 0.5
-
-    # k = 2.364942545424096
-    # k_alpha =0.1542182518462227
-    # k_beta = 2.15192323003995
+    k = 1.098718166021469
+    k_beta = 0.4389416404219697
+    k_alpha = 0.7221392258534132
 
     robot = TurtleSimManager("robot_test", k, k_alpha, k_beta)
     robot.spawn(1.0, 5.0, 0.0)

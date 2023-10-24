@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 # Define the limits for the parameters
-param_limits = [(0.1, 2.0), (0.1, 1.0), (0.1, 1.0)]
+param_limits = [(0.1, 1.0), (0.1, 1.0), (0.1, 1.0)]
 
 # Crie um conjunto para armazenar nomes gerados anteriormente
 generated_names = set()
@@ -23,7 +23,7 @@ def generate_unique_random_name(name_length=8):
 
 # Define the fitness function
 def fitness(params):
-    k, k_beta, k_alpha = params
+    k, k_alpha, k_beta = params
     # Create a robot with the parameters
     name = generate_unique_random_name(8)
     robot = TurtleSimManager(f"robot_{name.lower()}", k, k_alpha, k_beta)
@@ -36,6 +36,7 @@ def fitness(params):
     timeout_seconds = 15  # sec
     start_time = time.time() 
     stop_early = False
+    elapsed_time = None
 
     while rclpy.ok():
 
@@ -61,7 +62,8 @@ def fitness(params):
 
     # Execute the mission and get the distance traveled
     if not stop_early:
-        distance_traveled = robot.distance
+        distance_traveled = robot.distance / elapsed_time
+        print(f"robot_{name.lower()} : {distance_traveled} m/s")
     else:
         distance_traveled = 1.0e10000
 
@@ -71,25 +73,6 @@ def fitness(params):
 
 def create_individual():
     return creator.Individual([random.uniform(lim[0], lim[1]) for lim in param_limits])
-
-def custom_mutation(individual):
-    for i in range(len(individual)):
-        if random.random() < 0.2:  # Probabilidade de mutação
-            individual[i] += random.gauss(0, 0.2)
-            individual[i] = max(min(individual[i], param_limits[i][1]), param_limits[i][0])
-    return individual
-
-def custom_crossover(parent1, parent2):
-    child1 = tools.cxBlend(parent1, parent2, alpha=0.5)
-    child2 = tools.cxBlend(parent2, parent1, alpha=0.5)
-    
-    # Garanta que os filhos estão dentro dos limites
-    for i in range(len(child1)):
-        child1[i] = max(param_limits[i][0], min(child1[i], param_limits[i][1]))
-        child2[i] = max(param_limits[i][0], min(child2[i], param_limits[i][1]))
-    
-    return creator.Individual(child1), creator.Individual(child2)
-
 
 def main(args=None):
 
@@ -111,8 +94,8 @@ def main(args=None):
     toolbox.register("individual", create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", fitness)
-    toolbox.register("mate", custom_crossover)
-    toolbox.register("mutate", custom_mutation)
+    toolbox.register("mate", tools.cxTwoPoint)
+    toolbox.register("mutate", tools.mutGaussian, mu=0.55, sigma=0.2, indpb=0.2)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # Create an initial population
@@ -126,29 +109,24 @@ def main(args=None):
     stats.register("min", np.min)    # Menor aptidão
     stats.register("max", np.max)    # Maior aptidão
 
-    # Run the genetic algorithm (NSGA-II in this example)
-    algorithms.eaMuPlusLambda(population, toolbox, mu=5, lambda_=20, cxpb=0.7, mutpb=0.3, ngen=10, stats=stats, halloffame=None)
+    # Defina ngen, a quantidade de gerações que você deseja executar
+    ngen = 10
+
+    # Executar o algoritmo genético em um loop para cada geração
+    for gen in range(1, ngen + 1):
+        # Aqui, você pode imprimir ou fazer qualquer coisa que desejar na geração atual
+        print(f"Evaluating the generation {gen}/{ngen}")
+        
+        # Run the genetic algorithm (NSGA-II in this example)
+        algorithms.eaMuPlusLambda(population, toolbox, mu=5, lambda_=10, cxpb=0.7, mutpb=0.3, ngen=1, stats=stats, halloffame=None, verbose=True)
+
+        screen.reset()
+        screen.kill()
 
 
-    gen = range(0, len(stats.get("avg")))
-    avg = stats.get("avg")
-    min = stats.get("min")
-    max = stats.get("max")
+    best_individuals = tools.selBest(population, k=5)
 
-    best_individual = population[0]  # Suponha que o primeiro indivíduo é o melhor inicialmente
-
-    for ind in population:
-        if ind.fitness.values < best_individual.fitness.values:
-            best_individual = ind
-
-    best_parameters = best_individual  # Este é o melhor indivíduo encontrado
-
-    print("Best parameters found:", best_parameters)
-    print("average:", avg)
-    print("min:", min)
-    print("max:", max)
-    print("gen average: ", gen)
-
+    print("5 Best individuals parameters found:", best_individuals)
 
     rclpy.shutdown()
 
