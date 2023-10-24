@@ -21,8 +21,8 @@ class Controller:
         self.error_angle_beta = 0
         self.__linear_velocity = 0
         self.__angular_velocity = 0
-        self.threshold_linear = 0.3
-        self.threshold_angular = 0.2
+        self.threshold_linear = 0.1
+        self.threshold_angular = 0.1
         self.__tinyAdjust = False
 
     def approach(self, robot: Pose, target: Pose):

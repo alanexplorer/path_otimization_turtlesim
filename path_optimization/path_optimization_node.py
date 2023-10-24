@@ -28,7 +28,7 @@ def fitness(params):
     name = generate_unique_random_name(8)
     robot = TurtleSimManager(f"robot_{name.lower()}", k, k_alpha, k_beta)
 
-    robot.spawn(1.0, 5.0, 0.0)
+    robot.spawn(1.0, 2.0, 0.0)
     robot.add_subscription()
     robot.pen_request()
 
@@ -99,7 +99,7 @@ def main(args=None):
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # Create an initial population
-    population = toolbox.population(n=20)
+    population = toolbox.population(n=50)
 
     # Crie um objeto Statistics
     stats = tools.Statistics(key=lambda ind: ind.fitness.values)
@@ -114,19 +114,20 @@ def main(args=None):
 
     # Executar o algoritmo genético em um loop para cada geração
     for gen in range(1, ngen + 1):
+        screen.reset()
+        screen.kill()
+
         # Aqui, você pode imprimir ou fazer qualquer coisa que desejar na geração atual
         print(f"Evaluating the generation {gen}/{ngen}")
         
         # Run the genetic algorithm (NSGA-II in this example)
-        algorithms.eaMuPlusLambda(population, toolbox, mu=5, lambda_=10, cxpb=0.7, mutpb=0.3, ngen=1, stats=stats, halloffame=None, verbose=True)
+        algorithms.eaMuPlusLambda(population, toolbox, mu=5, lambda_=10, cxpb=0.6, mutpb=0.3, ngen=1, stats=stats, halloffame=None, verbose=True)
 
-        screen.reset()
-        screen.kill()
 
 
     best_individuals = tools.selBest(population, k=5)
 
-    print("5 Best individuals parameters found:", best_individuals)
+    print("The Best individu parameters found:", best_individuals[0])
 
     rclpy.shutdown()
 
